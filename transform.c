@@ -333,12 +333,6 @@ void MPEGNonIntraQuantize(matrix,qptr,qfact)
   BEGIN("MPEGNonIntraQuantize");
   int *mptr;
 
-#ifdef VERSION_1.0
-  for(mptr=matrix;mptr<matrix+BLOCKSIZE;mptr++,qptr++)
-    {
-      *mptr = (8 * (*mptr)) / (*qptr * qfact);
-    }
-#else
   int qp = qfact<<1;
   for(mptr=matrix;mptr<matrix+BLOCKSIZE;mptr++,qptr++)
     {
@@ -359,7 +353,6 @@ void MPEGNonIntraQuantize(matrix,qptr,qfact)
 	    *mptr = (*mptr-1)/qp;
 	}
     }
-#endif
 }
 
 
