@@ -27,6 +27,7 @@ This file contains most of the marker information.
 
 /*LABEL marker.c */
 
+#include <stdlib.h>
 #include "globals.h"
 #include "marker.h"
 

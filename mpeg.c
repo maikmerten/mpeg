@@ -33,7 +33,9 @@ finalized syntax is not exploited.
 
 /*LABEL mpeg.c */
 
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "globals.h"
 #include "qtables.h"
 

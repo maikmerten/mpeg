@@ -26,6 +26,7 @@ This file does much of the motion estimation and compensation.
 
 /*LABEL me.c */
 
+#include <stdlib.h>
 #include "globals.h"
 
 /*PUBLIC*/

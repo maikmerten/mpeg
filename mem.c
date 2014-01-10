@@ -26,7 +26,9 @@ This file contains the basic memory manipulation structures.
 
 /*LABEL mem.c */
 
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "mem.h"
 
 /*PUBLIC*/

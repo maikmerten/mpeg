@@ -27,6 +27,7 @@ no look-ahead in the stream.
 
 /*LABEL huffman.c */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include "stream.h"
 #include "globals.h"
