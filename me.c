@@ -29,6 +29,10 @@ This file does much of the motion estimation and compensation.
 #include <stdlib.h>
 #include "globals.h"
 
+#ifdef __SSE2__
+#include "emmintrin.h"
+#endif
+
 /*PUBLIC*/
 
 extern void initme();
@@ -105,6 +109,100 @@ void initme()
       FMY[i] = (int *) calloc(8192,sizeof(int));
       BMY[i] = (int *) calloc(8192,sizeof(int));
      }
+}
+
+/*BFUNC
+ 
+ ComputeError() gives an error score regarding how well a 16x16 block matches
+ a target. Computation stops once the error reaches or surpasses the
+ best known solution.
+ 
+ EFUNC*/
+
+__inline int ComputeError(unsigned char *bptr, unsigned char *cptr, MEM *rm, MEM *cm) {
+    int i,residue,error;
+#ifdef ARMSIMD32
+    int32_t a,b;
+#elif __SSE2__
+    __m128i a,b;
+#endif
+    error = 0;
+    for(i=0;i<16;i++) {
+#ifdef ARMSIMD32
+	a = *((int32_t*)bptr);
+	b = *((int32_t*)cptr);
+	asm volatile ("usad8 %[result], %[op1], %[op2]" : [result] "=r" (a): [op1] "0" (a), [op2] "r" (b));
+	error += a;
+
+	a = *((int32_t*)(bptr + 4));
+	b = *((int32_t*)(cptr + 4));
+	asm volatile ("usad8 %[result], %[op1], %[op2]" : [result] "=r" (a): [op1] "0" (a), [op2] "r" (b));
+	error += a;
+
+	a = *((int32_t*)(bptr + 8));
+	b = *((int32_t*)(cptr + 8));
+	asm volatile ("usad8 %[result], %[op1], %[op2]" : [result] "=r" (a): [op1] "0" (a), [op2] "r" (b));
+	error += a;
+
+	a = *((int32_t*)(bptr + 12));
+	b = *((int32_t*)(cptr + 12));
+	asm volatile ("usad8 %[result], %[op1], %[op2]" : [result] "=r" (a): [op1] "0" (a), [op2] "r" (b));
+	error += a;
+
+	if (error COMPARISON MV) break;
+	bptr += rm->width;
+	cptr += cm->width;
+#elif __SSE2__
+        a = _mm_loadu_si128((__m128i *) bptr);
+        b = _mm_loadu_si128((__m128i *) cptr);
+        a = _mm_sad_epu8(a, b);
+        b = _mm_srli_si128(a, 8);
+        a = _mm_add_epi32(a, b);
+        error += _mm_cvtsi128_si32(a);
+        // break if the error exceeds the best known solution
+	if (error COMPARISON MV) break;
+	bptr += rm->width;
+	cptr += cm->width;
+#else
+        residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+	residue=(*(bptr++)-*(cptr++));
+	if (residue<0) {error-=residue;} else {error+=residue;}
+        // break if the error exceeds the best known solution
+	if (error COMPARISON MV) break;
+	bptr += (rm->width - 16);
+	cptr += (cm->width - 16);
+#endif
+    }
+    return error;
 }
 
 
@@ -290,44 +388,7 @@ void HPFastBME(rx,ry,rm,cx,cy,cm,ox,oy)
 		{
 		  bptr = rm->data + lx + (ly * rm->width);
 		  cptr = baseptr;
-		  for(val=i=0;i<16;i++)
-		    {
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      if (val COMPARISON MV) break;
-		      bptr += (rm->width - 16);
-		      cptr += (cm->width - 16);
-		    }
+		  val = ComputeError(bptr, cptr, rm, cm);
 		  if (val < MV)
 		    {
 		      MV = val; 
@@ -355,44 +416,7 @@ void HPFastBME(rx,ry,rm,cx,cy,cm,ox,oy)
 		{
 		  bptr = rm->data + lx + (ly * rm->width);
 		  cptr = baseptr;
-		  for(val=i=0;i<16;i++)
-		    {
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      data=(*(bptr++)-*(cptr++));
-		      if (data<0) {val-=data;} else	{val+=data;}
-		      if (val COMPARISON MV) break;
-		      bptr += (rm->width - 16);
-		      cptr += (cm->width - 16);
-		    }
+		  val = ComputeError(bptr, cptr, rm, cm);
 		  if (val < MV)
 		    {
 		      MV = val; 
