@@ -83,6 +83,70 @@ static int zigzag_index[] =
 
 /*BFUNC
 
+FastDivide() is a very bizarre little helper to let the compiler construct
+fast integer divides for the most common divisors.
+
+EFUNC*/
+
+
+__inline int FastDivide(int divident, int divisor) {
+  
+    switch(divisor) {
+        case 1: return divident;
+        case 2: return divident / 2;
+        case 3: return divident / 3;
+        case 4: return divident / 4;
+        case 5: return divident / 5;
+        case 6: return divident / 6;
+        case 7: return divident / 7;
+        case 8: return divident / 8;
+        case 9: return divident / 9;
+        case 10: return divident / 10;
+        case 11: return divident / 11;
+        case 12: return divident / 12;
+        case 13: return divident / 13;
+        case 14: return divident / 14;
+        case 15: return divident / 15;
+        case 16: return divident / 16;
+        case 17: return divident / 17;
+        case 18: return divident / 18;
+        case 19: return divident / 19;
+        case 20: return divident / 20;
+        case 21: return divident / 21;
+        case 22: return divident / 22;
+        case 23: return divident / 23;
+        case 24: return divident / 24;
+        case 25: return divident / 25;
+        case 26: return divident / 26;
+        case 27: return divident / 27;
+        case 28: return divident / 28;
+        case 29: return divident / 29;
+        case 30: return divident / 30;
+        case 31: return divident / 31;
+        case 32: return divident / 32;
+        case 34: return divident / 34;
+        case 36: return divident / 36;
+        case 38: return divident / 38;
+        case 40: return divident / 40;
+        case 42: return divident / 42;
+        case 44: return divident / 44;
+        case 46: return divident / 46;
+        case 48: return divident / 48;
+        case 50: return divident / 50;
+        case 52: return divident / 52;
+        case 54: return divident / 54;
+        case 56: return divident / 56;
+        case 58: return divident / 58;
+        case 60: return divident / 60;
+        case 62: return divident / 62;
+        case 64: return divident / 64;
+    }
+    return divident / divisor;     
+}
+
+
+/*BFUNC
+
 ReferenceDct() does a reference DCT on the input (matrix) and output
 (new matrix).
 
@@ -278,13 +342,13 @@ void MPEGIntraQuantize(matrix,qptr,qfact)
     {
       if (*mptr>0)
 	{
-	  *mptr = ((*mptr << 4) + (*qptr >> 1)) / *qptr;
-	  *mptr = (*mptr + qfact) / qp;
+	  *mptr = FastDivide(((*mptr << 4) + (*qptr >> 1)), *qptr);
+	  *mptr = FastDivide((*mptr + qfact), qp);
 	}
       else if (*mptr < 0)
 	{
-	  *mptr = ((*mptr << 4) - (*qptr >> 1)) / *qptr;
-	  *mptr = (*mptr - qfact) / qp;
+	  *mptr = FastDivide(((*mptr << 4) - (*qptr >> 1)), *qptr);
+	  *mptr = FastDivide((*mptr - qfact), qp);
 	}
     }
 }
@@ -338,19 +402,19 @@ void MPEGNonIntraQuantize(matrix,qptr,qfact)
     {
       if (*mptr>0)
 	{
-	  *mptr = ((*mptr << 4) + (*qptr >> 1)) / *qptr;
+	  *mptr = FastDivide(((*mptr << 4) + (*qptr >> 1)), *qptr);
 	  if (qfact&1)
-	    *mptr = (*mptr)/qp;
+	    *mptr = FastDivide((*mptr), qp);
 	  else
-	    *mptr = (*mptr+1)/qp;
+	    *mptr = FastDivide((*mptr+1), qp);
 	}
       else if (*mptr < 0)
 	{
-	  *mptr = ((*mptr << 4) - (*qptr >> 1)) / *qptr;
+	  *mptr = FastDivide(((*mptr << 4) - (*qptr >> 1)), *qptr);
 	  if (qfact&1)
-	    *mptr = (*mptr)/qp;
+	    *mptr = FastDivide((*mptr), qp);
 	  else
-	    *mptr = (*mptr-1)/qp;
+	    *mptr = FastDivide((*mptr-1), qp);
 	}
     }
 }
