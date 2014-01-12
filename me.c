@@ -217,8 +217,53 @@ static int Do4Check(aptr,bptr,cptr,dptr,eptr,width,lim)
 {
   BEGIN("Do4Check");
   int val,i,data;
+#ifdef __SSE2__
+  __m128i a,b,c,d,e,sum16hi,sum16lo,avg8,zero8,two16;
+  zero8 = _mm_set1_epi8(0);
+  two16 = _mm_set1_epi16(2);
+#endif
   for(val=0,i=0;i<16;i++)
     {
+#ifdef __SSE2__
+      a = _mm_loadu_si128((__m128i*) aptr);
+      b = _mm_loadu_si128((__m128i*) bptr);
+      c = _mm_loadu_si128((__m128i*) cptr);
+      d = _mm_loadu_si128((__m128i*) dptr);
+      e = _mm_loadu_si128((__m128i*) eptr);
+      
+      // sums for b, c, d, e
+      sum16lo = _mm_add_epi16(_mm_unpacklo_epi8(b, zero8), _mm_unpacklo_epi8(c, zero8));
+      sum16lo = _mm_add_epi16(sum16lo, _mm_unpacklo_epi8(d, zero8));
+      sum16lo = _mm_add_epi16(sum16lo, _mm_unpacklo_epi8(e, zero8));
+      
+      sum16hi = _mm_add_epi16(_mm_unpackhi_epi8(b, zero8), _mm_unpackhi_epi8(c, zero8));
+      sum16hi = _mm_add_epi16(sum16hi, _mm_unpackhi_epi8(d, zero8));
+      sum16hi = _mm_add_epi16(sum16hi, _mm_unpackhi_epi8(e, zero8));
+      
+      // add rounding offset of 2
+      sum16lo = _mm_add_epi16(sum16lo, two16);
+      sum16hi = _mm_add_epi16(sum16hi, two16);
+      
+      // right shift by two (divide by four)
+      sum16lo = _mm_srai_epi16(sum16lo, 2);
+      sum16hi = _mm_srai_epi16(sum16hi, 2);
+      
+      // pack to 16x8 bit, contains average of b, c, d, and e
+      avg8 = _mm_packus_epi16(sum16lo, sum16hi);
+      
+      // compute SAD between a and average(b,c)
+      a = _mm_sad_epu8(a, avg8);
+      b = _mm_srli_si128(a, 8);
+      a = _mm_add_epi32(a, b);
+      val += _mm_cvtsi128_si32(a);
+      
+      if (val COMPARISON lim) return(val+1);
+      aptr += width;
+      bptr += width;
+      cptr += width;
+      dptr += width;
+      eptr += width;
+#else
       data=(*(aptr++) - ((*bptr++ + *cptr++ + *dptr++ + *eptr++ + 2) >> 2));
       if (data<0) {val-=data;} else {val+=data;}
       data=(*(aptr++) - ((*bptr++ + *cptr++ + *dptr++ + *eptr++ + 2) >> 2));
@@ -257,6 +302,7 @@ static int Do4Check(aptr,bptr,cptr,dptr,eptr,width,lim)
       cptr += (width - 16);
       dptr += (width - 16);
       eptr += (width - 16);
+#endif
     }
   return(val);
 }
