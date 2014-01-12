@@ -245,8 +245,8 @@ static int Do4Check(aptr,bptr,cptr,dptr,eptr,width,lim)
       sum16hi = _mm_add_epi16(sum16hi, two16);
       
       // right shift by two (divide by four)
-      sum16lo = _mm_srai_epi16(sum16lo, 2);
-      sum16hi = _mm_srai_epi16(sum16hi, 2);
+      sum16lo = _mm_srli_epi16(sum16lo, 2);
+      sum16hi = _mm_srli_epi16(sum16hi, 2);
       
       // pack to 16x8 bit, contains average of b, c, d, and e
       avg8 = _mm_packus_epi16(sum16lo, sum16hi);
@@ -338,8 +338,8 @@ static int Do2Check(aptr,bptr,cptr,width,lim)
       sum16hi = _mm_add_epi16(sum16hi, one16);
       
       // right shift by one (divide by two)
-      sum16lo = _mm_srai_epi16(sum16lo, 1);
-      sum16hi = _mm_srai_epi16(sum16hi, 1);
+      sum16lo = _mm_srli_epi16(sum16lo, 1);
+      sum16hi = _mm_srli_epi16(sum16hi, 1);
       
       // pack to 16x8 bit, contains average of b and c
       avg8 = _mm_packus_epi16(sum16lo, sum16hi);
