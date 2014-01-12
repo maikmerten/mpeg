@@ -251,7 +251,7 @@ static int Do4Check(aptr,bptr,cptr,dptr,eptr,width,lim)
       // pack to 16x8 bit, contains average of b, c, d, and e
       avg8 = _mm_packus_epi16(sum16lo, sum16hi);
       
-      // compute SAD between a and average(b,c)
+      // compute SAD between a and average(b, c, d, e)
       a = _mm_sad_epu8(a, avg8);
       b = _mm_srli_si128(a, 8);
       a = _mm_add_epi32(a, b);
@@ -317,7 +317,7 @@ static int Do2Check(aptr,bptr,cptr,width,lim)
   BEGIN("Do2Check");
   int val,i,data;
 #ifdef __SSE2__
-  __m128i a,b,c,bc16hi,bc16lo,bc8avg,zero8,one16;
+  __m128i a,b,c,sum16hi,sum16lo,avg8,zero8,one16;
   zero8 = _mm_set1_epi8(0);
   one16 = _mm_set1_epi16(1);
 #endif
@@ -330,22 +330,22 @@ static int Do2Check(aptr,bptr,cptr,width,lim)
       c = _mm_loadu_si128((__m128i*) cptr);
       
       // b + c (done in 16 bit)
-      bc16lo = _mm_add_epi16(_mm_unpacklo_epi8(b, zero8), _mm_unpacklo_epi8(c, zero8));
-      bc16hi = _mm_add_epi16(_mm_unpackhi_epi8(b, zero8), _mm_unpackhi_epi8(c, zero8));
+      sum16lo = _mm_add_epi16(_mm_unpacklo_epi8(b, zero8), _mm_unpacklo_epi8(c, zero8));
+      sum16hi = _mm_add_epi16(_mm_unpackhi_epi8(b, zero8), _mm_unpackhi_epi8(c, zero8));
       
       // add rounding offset of 1
-      bc16lo = _mm_add_epi16(bc16lo, one16);
-      bc16hi = _mm_add_epi16(bc16hi, one16);
+      sum16lo = _mm_add_epi16(sum16lo, one16);
+      sum16hi = _mm_add_epi16(sum16hi, one16);
       
       // right shift by one (divide by two)
-      bc16lo = _mm_srai_epi16(bc16lo, 1);
-      bc16hi = _mm_srai_epi16(bc16hi, 1);
+      sum16lo = _mm_srai_epi16(sum16lo, 1);
+      sum16hi = _mm_srai_epi16(sum16hi, 1);
       
       // pack to 16x8 bit, contains average of b and c
-      bc8avg = _mm_packus_epi16(bc16lo, bc16hi);
+      avg8 = _mm_packus_epi16(sum16lo, sum16hi);
       
       // compute SAD between a and average(b,c)
-      a = _mm_sad_epu8(a, bc8avg);
+      a = _mm_sad_epu8(a, avg8);
       b = _mm_srli_si128(a, 8);
       a = _mm_add_epi32(a, b);
       val += _mm_cvtsi128_si32(a);
