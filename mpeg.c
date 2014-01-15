@@ -465,6 +465,10 @@ int main(argc,argv)
 	      break;
 	    case 'p':
 	      Prate = atoi(argv[++i]);
+          if(Prate > 9 || Prate <= 0) {
+            printf("Invalid argument for option -p. Argument should be in the range [1, 8]. Non-standard 9 (15Hz) is also accepted)\n");
+            exit(ERROR_BOUNDS);
+          }
 	      break;
 	    case 'q':
 	      InitialQuant=atoi(argv[++i]);
