@@ -367,6 +367,15 @@ vFunc *UseIDct = ChenIDct;
 			   *Rate*FrameSkip\
 			  /(MBHeight*MBWidth*FrameRate())))
 
+/* y4m input */
+#include "vidinput.h"
+int y4mio = 0;
+int y4mfromstdin = 0;
+video_input_ycbcr frame;
+char tag[5];
+video_input vid;
+  
+  
 /*START*/
 
 /*BFUNC
@@ -399,6 +408,8 @@ int main(argc,argv)
 	ImageType = IT_CIF;
       else if (!strcmp("-QCIF",argv[i]))
 	ImageType = IT_QCIF;
+      else if (!strcmp("-y4m",argv[i]))
+	y4mio = 1;
       else if (!strcmp("-PF",argv[i]))
 	CImage->PartialFrame=1;
       else if (!strcmp("-NPS",argv[i]))
@@ -493,6 +504,10 @@ int main(argc,argv)
 	    case 'z':
 	      strcpy(CFrame->ComponentFileSuffix[s++],argv[++i]);
 	      break;
+	    case '-':
+	      y4mfromstdin = 1;
+	      strcpy(CFrame->ComponentFilePrefix[p++],"stdin");
+	      break;
 	    default:
 	      WHEREAMI();
 	      printf("Illegal Option %c\n",*argv[i]);
@@ -564,6 +579,7 @@ EFUNC*/
 void MpegEncodeSequence()
 {
   BEGIN("MpegEncodeSequence");
+  FILE *fin = NULL;
   int i;
 
   if (DCIntraFlag)     /* DC Intraframes are handled by a faster engine */
@@ -571,6 +587,40 @@ void MpegEncodeSequence()
       MpegEncodeDSequence();
       return;
     }
+  
+    	if(y4mio)
+	{
+		int i;
+
+		sprintf(CFrame->ComponentFileName[0],"%s%s",
+					CFrame->ComponentFilePrefix[0],
+					CFrame->ComponentFileSuffix[0]);
+
+		if(y4mfromstdin)
+		{
+#ifdef _WIN32
+			_setmode(_fileno(stdin),_O_BINARY);
+#endif
+			fin = stdin;
+		}
+		else
+			fin = fopen(CFrame->ComponentFileName[0], "rb");
+		
+		if(fin == NULL){
+			fprintf(stderr,"Unable to open '%s'.\n", CFrame->ComponentFileName[0]);
+			exit(-1);
+		}
+		if(video_input_open(&vid,fin) < 0)
+			exit(-1);
+
+		/*Seek to StartFrame*/
+		for(i=StartFrame; i>0; --i)
+			if( !video_input_fetch_frame(&vid, frame, tag) )
+				exit(ERROR_BOUNDS);
+	}
+
+  
+  
   MakeFGroup();        /* Make our group structure */
   MakeStat();          /* Make the statistics structure */
   MakeFS(READ_IOB);    /* Make our frame stores */
@@ -628,8 +678,10 @@ void MpegEncodeSequence()
   WriteGOPHeader();   /* Set up first frame */
   ClosedGOP=0;        /* Reset closed GOP */
   PType=P_INTRA;
-  MakeFileNames();
-  VerifyFiles();
+  if(!y4mio) {
+	MakeFileNames();
+	VerifyFiles();
+  }
   CFStore=CFSUse; SwapFS(CFSBase,CFSNext); CFSNew=CFSNext;
   ReadFS();
   TemporalReference = 0;
@@ -649,8 +701,10 @@ void MpegEncodeSequence()
 	  if (!XING)
 	    WriteGOPHeader();        /* Write off a group of pictures */
 	  PType=P_INTRA;
-	  MakeFileNames();
-	  VerifyFiles();
+	  if(!y4mio) {
+		MakeFileNames();
+		VerifyFiles();
+	  }
 	  CFStore=CFSUse; SwapFS(CFSBase,CFSNext); CFSNew=CFSNext;
 	  ReadFS();
 	  MpegEncodeIPBDFrame();
@@ -660,8 +714,10 @@ void MpegEncodeSequence()
 	  TemporalReference = (CurrentFrame-GroupFirstFrame)%TEMPORAL_MODULO;
 	  FrameDistance = FrameInterval;
 	  PType=P_PREDICTED;
-	  MakeFileNames();
-	  VerifyFiles();
+	  if(!y4mio) {
+		MakeFileNames();
+		VerifyFiles();
+	  }
 	  CFStore=CFSUse; SwapFS(CFSBase,CFSNext); CFSNew=CFSNext;
 	  ReadFS();
 	  MpegEncodeIPBDFrame();
@@ -681,6 +737,7 @@ void MpegEncodeSequence()
       BaseFrame+=FrameInterval;         /* Shift base frame to next interval */
     }
   WriteVEHeader();              /* Write out the end header... */
+  video_input_close(&vid);
   swclose();
 /*
   SaveMem("XX",CFS->fs[0]->mem);
@@ -2525,7 +2582,7 @@ void CreateFrameSizes()
       if (*CFrame->ComponentFileSuffix[i]=='\0')
 	{
 	  strcpy(CFrame->ComponentFileSuffix[i],
-		 DefaultSuffix[i]);
+		 y4mio ? ".y4m" : DefaultSuffix[i]);
 	}
     }
   MBWidth = (HorizontalSize+15)/16;
@@ -2585,6 +2642,7 @@ void Help()
   printf("     [-q Quantization] [-r Target Rate]\n");
   printf("     [-s StreamFile]  [-x Target Filesize] [-y]\n");
   printf("     [-z ComponentFileSuffix i]\n");
+  printf("     [-y4m [--]]\n");
   printf("     ComponentFilePrefix1 [ComponentFilePrefix2 ComponentFilePrefix3]\n");
   printf("-NTSC (352x240)  -CIF (352x288) -QCIF (176x144) base filesizes.\n");
   printf("-PF is partial frame encoding/decoding...\n");
@@ -2619,6 +2677,8 @@ void Help()
   printf("-x gives the target filesize in bits. (overrides -r option.)\n");
   printf("-y enables Reference DCT.\n");
   printf("-z gives the ComponentFileSuffixes (repeatable).\n");
+  printf("-y4m treat ComponentFilePrefix1ComponentFileSuffix1 as a single y4m file that contains all 3 components. (encoding only. ComponentFileSuffix defaults to .y4m if not specified.)\n");
+  printf("-- read y4m from stdin. ComponentFilePrefixes and ComponentFileSuffixes will not be used.\n"); 
 }
 
 /*BFUNC

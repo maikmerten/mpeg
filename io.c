@@ -83,6 +83,12 @@ static int Nask[64];
 
 IOBUF *Iob;
 
+/* y4m input */
+#include "vidinput.h"
+int y4mio;
+video_input_ycbcr frame;
+char tag[5];
+video_input vid;
 
 /*START*/
 
@@ -96,29 +102,46 @@ EFUNC*/
 void MakeFS(flag)
      int flag;
 {
-  BEGIN("MakeFS");
-  int i;
+	BEGIN("MakeFS");
+	int i;
 
-  CFStore = MakeStructure(FSTORE);
-  CFStore->NumberComponents=CFrame->NumberComponents;
-  for(i=0;i<CFStore->NumberComponents;i++)
-    {
-      if (!(CFStore->Iob[i]=MakeStructure(IOBUF)))
-	{
-	  WHEREAMI();
-	  printf("Cannot make IO structure\n");
-	  exit(ERROR_MEMORY);
+	CFStore = MakeStructure(FSTORE);
+	CFStore->NumberComponents = CFrame->NumberComponents;
+	if (!y4mio) {
+		/*Read current frame's Y, Cb, Cr components from seperate files*/
+		for (i = 0; i < CFStore->NumberComponents; i++) {
+			if (!(CFStore->Iob[i] = MakeStructure(IOBUF))) {
+				WHEREAMI();
+				printf("Cannot make IO structure\n");
+				exit(ERROR_MEMORY);
+			}
+			CFStore->Iob[i]->flag = flag;
+			CFStore->Iob[i]->hpos = 0;
+			CFStore->Iob[i]->vpos = 0;
+			CFStore->Iob[i]->hor = CFrame->hf[i];
+			CFStore->Iob[i]->ver = CFrame->vf[i];
+			CFStore->Iob[i]->width = CFrame->Width[i];
+			CFStore->Iob[i]->height = CFrame->Height[i];
+			CFStore->Iob[i]->mem = MakeMem(CFrame->Width[i],
+					CFrame->Height[i]);
+		}
+	} else {
+		/*Read current frame's Y, Cb, Cr components from single y4m file*/
+		video_input_fetch_frame(&vid, frame, tag);
+		for (i = 0; i < CFrame->NumberComponents; i++) {
+			if (!(CFStore->Iob[i] = MakeStructure(IOBUF))) {
+				WHEREAMI();
+				printf("Cannot make IO structure\n");
+				exit(ERROR_MEMORY);
+			}
+			
+			CFStore->Iob[i]->width = frame[i].width;
+			CFStore->Iob[i]->height = frame[i].height;
+			CFStore->Iob[i]->mem = frame[i].data;
+			
+			
+		}
 	}
-      CFStore->Iob[i]->flag = flag;
-      CFStore->Iob[i]->hpos = 0;
-      CFStore->Iob[i]->vpos = 0;
-      CFStore->Iob[i]->hor = CFrame->hf[i];
-      CFStore->Iob[i]->ver = CFrame->vf[i];
-      CFStore->Iob[i]->width = CFrame->Width[i];
-      CFStore->Iob[i]->height = CFrame->Height[i];
-      CFStore->Iob[i]->mem = MakeMem(CFrame->Width[i],
-				    CFrame->Height[i]);
-    }      
 }
 
 /*BFUNC
