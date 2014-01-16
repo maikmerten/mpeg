@@ -3,12 +3,12 @@
 # There should be no changes for most UNIX compilers.
 ###########################################################
 
-MFLAGS = -O
+MFLAGS = -O3 -pg -g
 DEFS = system.h globals.h marker.h
-BASELINE =  mpeg.o codec.o huffman.o io.o chendct.o lexer.o marker.o me.o mem.o stat.o stream.o transform.o
+BASELINE =  mpeg.o codec.o huffman.o io.o chendct.o lexer.o marker.o me.o mem.o stat.o stream.o transform.o y4m_input.o vidinput.o
 
 .c.o:
-	cc $(MFLAGS) -c $*.c 
+	$(CC) $(MFLAGS) -I. -c $*.c 
 
 .c.ln:
 	lint -c $*.c 
@@ -19,13 +19,13 @@ clean:
 	rm *.o mpeg
 
 mpeg: $(BASELINE)
-	cc $(MFLAGS) $(BASELINE) -lm -o mpeg
+	$(CC) $(MFLAGS) $(BASELINE) -lm -o mpeg
 
-mpeg.o: mpeg.c $(DEFS)
+mpeg.o: mpeg.c $(DEFS) vidinput.h ogg/os_types.h
 codec.o: codec.c $(DEFS)
 marker.o: marker.c $(DEFS) marker.h
 huffman.o: huffman.c $(DEFS) huffman.h
-io.o: io.c $(DEFS)
+io.o: io.c $(DEFS) vidinput.h ogg/os_types.h
 chendct.o: chendct.c $(DEFS)
 lexer.o:lexer.c
 mem.o: mem.c 
@@ -33,6 +33,8 @@ me.o: me.c
 stat.o: stat.c 
 stream.o: stream.c $(DEFS)
 transform.o: transform.c $(DEFS) dct.h
+vidinput.o: vidinput.c vidinput.h ogg/os_types.h
+y4m_input.o: y4m_input.c vidinput.h ogg/os_types.h	
 
 lcheck: mpeg.ln codec.ln marker.ln huffman.ln io.ln chendct.ln lexer.ln mem.ln me.ln stat.ln stream.ln transform.ln
 	lint  mpeg.ln codec.ln marker.ln huffman.ln io.ln chendct.ln lexer.ln mem.ln me.ln stat.ln stream.ln transform.ln
