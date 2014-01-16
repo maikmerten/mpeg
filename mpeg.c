@@ -728,8 +728,10 @@ void MpegEncodeSequence()
 	  FrameDistance = i;
 	  TemporalReference = (CurrentFrame-GroupFirstFrame)%TEMPORAL_MODULO;
 	  PType=P_INTERPOLATED;
-	  MakeFileNames();
-	  VerifyFiles();
+	  if(!y4mio) {
+	    MakeFileNames();
+	    VerifyFiles();
+	  }
 	  CFStore=CFSUse; CFSNew=CFSMid;
 	  ReadFS();
 	  MpegEncodeIPBDFrame();
