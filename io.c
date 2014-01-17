@@ -127,18 +127,17 @@ void MakeFS(flag)
 		}
 	} else {
 		/*Read current frame's Y, Cb, Cr components from single y4m file*/
-		video_input_fetch_frame(&vid, frame, tag);
+		video_input_info info;
+		video_input_get_info(&vid, &info);
+
 		for (i = 0; i < CFrame->NumberComponents; i++) {
 			if (!(CFStore->Iob[i] = MakeStructure(IOBUF))) {
 				WHEREAMI();
 				printf("Cannot make IO structure\n");
 				exit(ERROR_MEMORY);
 			}
-			
-			CFStore->Iob[i]->width = frame[i].width;
-			CFStore->Iob[i]->height = frame[i].height;
-			CFStore->Iob[i]->mem = frame[i].data;
-			
+			CFStore->Iob[i]->width = info.frame_w;
+			CFStore->Iob[i]->height = info.frame_h;
 			
 		}
 	}
