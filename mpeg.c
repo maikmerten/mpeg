@@ -2454,29 +2454,35 @@ EFUNC*/
 void LoadFGroup(index)
      int index;
 {
-  BEGIN("LoadFGroup");
-  int i;
-  static char TheFileName[100];
+    BEGIN("LoadFGroup");
+    int i;
+    static char TheFileName[100];
 
-  for(i=0;i<=FrameInterval;i++)
-    {
-      sprintf(TheFileName,"%s%d%s",
-	      CFrame->ComponentFilePrefix[0],
-	      index+i,
-	      CFrame->ComponentFileSuffix[0]);
-      printf("Loading file: %s\n",TheFileName);
-      if (CImage->PartialFrame)
-	FFS[i] =  LoadPartialMem(TheFileName,
-				 CFrame->PWidth[0],
-				 CFrame->PHeight[0],
-				 CFrame->Width[0],
-				 CFrame->Height[0],
-				 FFS[i]);
-      else
-	FFS[i] =  LoadMem(TheFileName,
-			  CFrame->Width[0],
-			  CFrame->Height[0],
-			  FFS[i]);
+    for (i = 0; i <= FrameInterval; i++) {
+        if (!y4mio) {
+            sprintf(TheFileName, "%s%d%s",
+                    CFrame->ComponentFilePrefix[0],
+                    index + i,
+                    CFrame->ComponentFileSuffix[0]);
+            printf("Loading file: %s\n", TheFileName);
+            if (CImage->PartialFrame)
+                FFS[i] = LoadPartialMem(TheFileName,
+                    CFrame->PWidth[0],
+                    CFrame->PHeight[0],
+                    CFrame->Width[0],
+                    CFrame->Height[0],
+                    FFS[i]);
+            else
+                FFS[i] = LoadMem(TheFileName,
+                    CFrame->Width[0],
+                    CFrame->Height[0],
+                    FFS[i]);
+        } else {
+            video_input_fetch_frame(&vid, frame, tag);
+            // only Y plane asked here?
+            FFS[i]->data = frame[0].data;
+
+        }
     }
 }
 

@@ -481,25 +481,31 @@ CFrame structure.
 
 EFUNC*/
 
-void ReadFS()
-{
-  BEGIN("ReadFS");
-  int i;
-  
-  for(i=0;i<CFrame->NumberComponents;i++)
-    {
-      if (CImage->PartialFrame)
-	CFStore->Iob[i]->mem = LoadPartialMem(CFrame->ComponentFileName[i],
-					      CFrame->PWidth[i],
-					      CFrame->PHeight[i],
-					      CFrame->Width[i],
-					      CFrame->Height[i],
-					      CFStore->Iob[i]->mem);
-      else
-	CFStore->Iob[i]->mem = LoadMem(CFrame->ComponentFileName[i],
-				       CFrame->Width[i],
-				       CFrame->Height[i],
-				       CFStore->Iob[i]->mem);
+void ReadFS() {
+    BEGIN("ReadFS");
+    int i;
+
+    if (y4mio) {
+        video_input_fetch_frame(&vid, frame, tag);
+    }
+
+    for (i = 0; i < CFrame->NumberComponents; i++) {
+        if (!y4mio) {
+            if (CImage->PartialFrame)
+                CFStore->Iob[i]->mem = LoadPartialMem(CFrame->ComponentFileName[i],
+                    CFrame->PWidth[i],
+                    CFrame->PHeight[i],
+                    CFrame->Width[i],
+                    CFrame->Height[i],
+                    CFStore->Iob[i]->mem);
+            else
+                CFStore->Iob[i]->mem = LoadMem(CFrame->ComponentFileName[i],
+                    CFrame->Width[i],
+                    CFrame->Height[i],
+                    CFStore->Iob[i]->mem);
+        } else {
+            CFStore->Iob[i]->mem = frame[i].data;
+        }
     }
 }
 
