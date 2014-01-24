@@ -184,11 +184,17 @@ void ReferenceDct(matrix,newmatrix)
       dptr+=BLOCKWIDTH;
     }
   DoubleTransposeMatrix(destmatrix,sourcematrix);
+#ifdef __SSE2__
+  for(sptr = sourcematrix,mptr=newmatrix;mptr<newmatrix+BLOCKSIZE;sptr++,mptr++) {
+      *(mptr) = _mm_cvtsi128_si32(_mm_cvtpd_epi32(_mm_load1_pd(sptr)));
+  }
+#else  
   for(sptr = sourcematrix,mptr=newmatrix;
       mptr<newmatrix+BLOCKSIZE;sptr++)
     {    /* NB: Inversion on counter */
       *(mptr++) = (int) (*sptr > 0 ? (*(sptr)+0.5):(*(sptr)-0.5));
     }
+#endif
 }
 
 /*BFUNC
