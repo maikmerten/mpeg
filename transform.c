@@ -198,7 +198,7 @@ input and places the result in a double output.
 
 EFUNC*/
 
-inline static void DoubleReferenceDct1D(ivect,ovect)
+static void DoubleReferenceDct1D(ivect,ovect)
      double *ivect;
      double *ovect;
 {
