@@ -31,6 +31,10 @@ algorithms.
 #include "dct.h"
 #include <math.h>
 
+#ifdef __SSE2__
+#include "emmintrin.h"
+#endif
+
 /*PUBLIC*/
 
 extern void ReferenceDct();
@@ -194,13 +198,44 @@ input and places the result in a double output.
 
 EFUNC*/
 
-static void DoubleReferenceDct1D(ivect,ovect)
+inline static void DoubleReferenceDct1D(ivect,ovect)
      double *ivect;
      double *ovect;
 {
   BEGIN("DoubleReferenceDct1D");
   double *mptr,*iptr,*optr;
+#ifdef __SSE2__
+    for (mptr = DctMatrix, optr = ovect; optr < ovect + BLOCKWIDTH; optr++, mptr+=8) {
+        __m128d i, o, m;
+        o = _mm_set1_pd(0);
 
+        i = _mm_loadu_pd(ivect);
+        m = _mm_loadu_pd(mptr);
+        i = _mm_mul_pd(i, m);
+        o = _mm_add_pd(o, i);
+
+        i = _mm_loadu_pd(ivect + 2);
+        m = _mm_loadu_pd(mptr + 2);
+        i = _mm_mul_pd(i, m);
+        o = _mm_add_pd(o, i);
+
+        i = _mm_loadu_pd(ivect + 4);
+        m = _mm_loadu_pd(mptr + 4);
+        i = _mm_mul_pd(i, m);
+        o = _mm_add_pd(o, i);
+
+        i = _mm_loadu_pd(ivect + 6);
+        m = _mm_loadu_pd(mptr + 6);
+        i = _mm_mul_pd(i, m);
+        o = _mm_add_pd(o, i);
+       
+        // sum up both values in o
+        i = _mm_shuffle_pd(o, o, 1);
+        o = _mm_add_pd(i, o);
+        // store one value (they're identical)
+        _mm_store_sd(optr, o);
+    }
+#else
   for(mptr=DctMatrix,optr=ovect;optr<ovect+BLOCKWIDTH;optr++)
     {
       for(*optr=0,iptr=ivect;iptr<ivect+BLOCKWIDTH;iptr++)
@@ -208,6 +243,7 @@ static void DoubleReferenceDct1D(ivect,ovect)
 	  *optr += *iptr*(*(mptr++));
 	}
     }
+#endif
 }
 
 /*BFUNC
