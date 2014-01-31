@@ -91,7 +91,6 @@ char tag[5];
 video_input vid;
 
 /*START*/
-
 /*BFUNC
 
 MakeFS() constructs an IO structure and assorted book-keeping
@@ -99,48 +98,30 @@ instructions for all components of the frame.
 
 EFUNC*/
 
-void MakeFS(flag)
-     int flag;
-{
-	BEGIN("MakeFS");
-	int i;
+void MakeFS(int flag) {
+    BEGIN("MakeFS");
+    int i;
 
-	CFStore = MakeStructure(FSTORE);
-	CFStore->NumberComponents = CFrame->NumberComponents;
-	if (!y4mio) {
-		/*Read current frame's Y, Cb, Cr components from seperate files*/
-		for (i = 0; i < CFStore->NumberComponents; i++) {
-			if (!(CFStore->Iob[i] = MakeStructure(IOBUF))) {
-				WHEREAMI();
-				printf("Cannot make IO structure\n");
-				exit(ERROR_MEMORY);
-			}
-			CFStore->Iob[i]->flag = flag;
-			CFStore->Iob[i]->hpos = 0;
-			CFStore->Iob[i]->vpos = 0;
-			CFStore->Iob[i]->hor = CFrame->hf[i];
-			CFStore->Iob[i]->ver = CFrame->vf[i];
-			CFStore->Iob[i]->width = CFrame->Width[i];
-			CFStore->Iob[i]->height = CFrame->Height[i];
-			CFStore->Iob[i]->mem = MakeMem(CFrame->Width[i],
-					CFrame->Height[i]);
-		}
-	} else {
-		/*Read current frame's Y, Cb, Cr components from single y4m file*/
-		video_input_info info;
-		video_input_get_info(&vid, &info);
+    CFStore = MakeStructure(FSTORE);
+    CFStore->NumberComponents = CFrame->NumberComponents;
 
-		for (i = 0; i < CFrame->NumberComponents; i++) {
-			if (!(CFStore->Iob[i] = MakeStructure(IOBUF))) {
-				WHEREAMI();
-				printf("Cannot make IO structure\n");
-				exit(ERROR_MEMORY);
-			}
-			CFStore->Iob[i]->width = info.frame_w;
-			CFStore->Iob[i]->height = info.frame_h;
-			
-		}
-	}
+    /*Read current frame's Y, Cb, Cr components from seperate files*/
+    for (i = 0; i < CFStore->NumberComponents; i++) {
+        if (!(CFStore->Iob[i] = MakeStructure(IOBUF))) {
+            WHEREAMI();
+            printf("Cannot make IO structure\n");
+            exit(ERROR_MEMORY);
+        }
+        CFStore->Iob[i]->flag = flag;
+        CFStore->Iob[i]->hpos = 0;
+        CFStore->Iob[i]->vpos = 0;
+        CFStore->Iob[i]->hor = CFrame->hf[i];
+        CFStore->Iob[i]->ver = CFrame->vf[i];
+        CFStore->Iob[i]->width = CFrame->Width[i];
+        CFStore->Iob[i]->height = CFrame->Height[i];
+        CFStore->Iob[i]->mem = MakeMem(CFrame->Width[i],
+                CFrame->Height[i]);
+    }
 }
 
 /*BFUNC
