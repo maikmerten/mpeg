@@ -620,10 +620,10 @@ void MpegEncodeSequence()
                 CFrame->Width[0] = info.frame_w;
                 CFrame->Height[0] = info.frame_h;
                 // assume half resolution for components 1 and 2
-                CFrame->Width[0] = CFrame->Width[0] / 2;
-                CFrame->Height[0] = CFrame->Height[0] / 2;
-                CFrame->Width[0] = CFrame->Width[0] / 2;
-                CFrame->Height[0] = CFrame->Height[0] / 2;
+                CFrame->Width[1] = CFrame->Width[0] / 2;
+                CFrame->Height[1] = CFrame->Height[0] / 2;
+                CFrame->Width[2] = CFrame->Width[0] / 2;
+                CFrame->Height[2] = CFrame->Height[0] / 2;
                         
 		/*Seek to StartFrame*/
 		for(i=StartFrame; i>0; --i)
