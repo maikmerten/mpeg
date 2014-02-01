@@ -304,49 +304,54 @@ void AddCompensate(matrix,XIob)
     }
 }
 
-void MakeMask(x,y,mask,XIob)
-     int x;
-     int y;
-     int *mask;
-     IOBUF *XIob;
-{
-  BEGIN("MakeMask");
-  int i,j,rx,ry,dx,dy;
-  unsigned char *aptr,*bptr,*cptr,*dptr;
+void MakeMask(int x, int y, int* mask, IOBUF *XIob) {
+	BEGIN("MakeMask");
+	int i, j, rx, ry, dx, dy;
+	unsigned char *aptr, *bptr, *cptr, *dptr;
 
-  rx = x>>1;  ry = y>>1;
-  dx = x&1;  dy = y&1;
-  aptr = (((XIob->vpos *  BlockHeight) + ry)*XIob->width)
-    + (XIob->hpos * BlockWidth) + rx
-      + XIob->mem->data;
-  if (dx)
-    {
-      bptr = aptr + dx;
-      if (dy)
-	{
-	  cptr = aptr + XIob->width;
-	  dptr = cptr + dx;
-	  Get4Ptr(XIob->width,mask,aptr,bptr,cptr,dptr);
+	rx = x >> 1;
+	ry = y >> 1;
+	dx = x & 1;
+	dy = y & 1;
+	aptr = (((XIob->vpos * BlockHeight) + ry) * XIob->width)
+			+ (XIob->hpos * BlockWidth) + rx
+			+ XIob->mem->data;
+	if (dx) {
+		bptr = aptr + dx;
+		if (dy) {
+			cptr = aptr + XIob->width;
+			dptr = cptr + dx;
+			Get4Ptr(XIob->width, mask, aptr, bptr, cptr, dptr);
+		} else {
+			Get2Ptr(XIob->width, mask, aptr, bptr);
+		}
+	} else if (dy) {
+		cptr = aptr + XIob->width;
+		Get2Ptr(XIob->width, mask, aptr, cptr);
+	} else {
+#ifdef __SSE2__
+		__m128i zero = _mm_set1_epi32(0);		
+#endif		
+		for (i = 0; i < BlockHeight; i++) {
+#ifdef __SSE2__
+			__m128i b;
+			__m128i a = _mm_loadl_epi64((__m128i*) aptr);
+			a = _mm_unpacklo_epi8(a, zero);
+			b = _mm_unpackhi_epi8(a, zero);
+			a = _mm_unpacklo_epi8(a, zero);
+
+			_mm_storeu_si128((__m128i*) mask, a);
+			_mm_storeu_si128(((__m128i*) mask) + 1, b);
+			
+			mask += 8;
+			aptr += XIob->width;
+#else
+			for (j = 0; j < BlockWidth; j++)
+				*(mask++) = *aptr++;
+			aptr = aptr - BlockWidth + XIob->width;
+#endif
+		}
 	}
-      else
-	{
-	  Get2Ptr(XIob->width,mask,aptr,bptr);
-	}
-    }
-  else if (dy)
-    {
-      cptr = aptr + XIob->width;
-      Get2Ptr(XIob->width,mask,aptr,cptr);
-    }
-  else
-    {
-      for(i=0;i<BlockHeight;i++)
-	{
-	  for(j=0;j<BlockWidth;j++)
-	    *(mask++) = *aptr++;
-	  aptr = aptr-BlockWidth+XIob->width;
-	}
-    }
 }
 
 static void Get4Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *bptr, unsigned char *cptr, unsigned char *dptr) {
