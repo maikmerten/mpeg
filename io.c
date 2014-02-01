@@ -351,15 +351,16 @@ void MakeMask(x,y,mask,XIob)
 
 static void Get4Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *bptr, unsigned char *cptr, unsigned char *dptr) {
 	int i, j;
-
+#ifdef __SSE2__
+	__m128i zero = _mm_set1_epi32(0);
+#endif
 	for (i = 0; i < BlockHeight; i++) /* should be unrolled */ {
 #ifdef __SSE2__
 		__m128i a = _mm_loadl_epi64((__m128i*) aptr);
 		__m128i b = _mm_loadl_epi64((__m128i*) bptr);
 		__m128i c = _mm_loadl_epi64((__m128i*) cptr);
 		__m128i d = _mm_loadl_epi64((__m128i*) dptr);
-		__m128i zero = _mm_set1_epi32(0);
-
+		
 		a = _mm_unpacklo_epi8(a, zero);
 		b = _mm_unpacklo_epi8(b, zero);
 		c = _mm_unpacklo_epi8(c, zero);
@@ -397,11 +398,13 @@ static void Get4Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *
 
 static void Get2Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *bptr) {
 	int i, j;
+#ifdef __SSE2__
+	__m128i zero = _mm_set1_epi32(0);
+#endif
 	for (i = 0; i < BlockHeight; i++) /* should be unrolled */ {
 #ifdef __SSE2__
 		__m128i a = _mm_loadl_epi64((__m128i*) aptr);
 		__m128i b = _mm_loadl_epi64((__m128i*) bptr);
-		__m128i zero = _mm_set1_epi32(0);
 
 		a = _mm_unpacklo_epi8(a, zero);
 		b = _mm_unpacklo_epi8(b, zero);
