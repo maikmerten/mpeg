@@ -32,6 +32,10 @@ component number MPEG work.
 #include <stdio.h>
 #include "globals.h"
 
+#ifdef __SSE2__
+#include "emmintrin.h"
+#endif
+
 /*PUBLIC*/
 
 extern void MakeFS();
@@ -369,24 +373,38 @@ static void Get4Ptr(width,matrix,aptr,bptr,cptr,dptr)
     }
 }
 
+static void Get2Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *bptr) {
+	int i, j;
+	for (i = 0; i < BlockHeight; i++) /* should be unrolled */ {
+#ifdef __SSE2__
+		__m128i a = _mm_loadl_epi64((__m128i*) aptr);
+		__m128i b = _mm_loadl_epi64((__m128i*) bptr);
+		__m128i zero = _mm_set1_epi32(0);
 
-static void Get2Ptr(width,matrix,aptr,bptr)
-     int width;
-     int *matrix;
-     unsigned char *aptr;
-     unsigned char *bptr;
-{
-  int i,j;
+		a = _mm_unpacklo_epi8(a, zero);
+		b = _mm_unpacklo_epi8(b, zero);
 
-  for(i=0;i<BlockHeight;i++)  /* should be unrolled */
-    {
-      for(j=0;j<BlockWidth;j++)
-	{
-	  *(matrix++) = ((((int) *aptr++) + ((int)*bptr++) + 1) >> 1);
+		a = _mm_add_epi16(a, b);
+		a = _mm_add_epi16(a, _mm_set1_epi16(1));
+		a = _mm_srli_epi16(a, 1);
+
+		b = _mm_unpackhi_epi8(a, zero);
+		a = _mm_unpacklo_epi8(a, zero);
+
+		_mm_storeu_si128((__m128i*) matrix, a);
+		_mm_storeu_si128(((__m128i*) matrix) + 1, b);
+
+		matrix += 8;
+		aptr += width;
+		bptr += width;
+#else
+		for (j = 0; j < BlockWidth; j++) {
+			*(matrix++) = ((((int) *aptr++) + ((int) *bptr++) + 1) >> 1);
+		}
+		aptr = aptr - BlockWidth + width;
+		bptr = bptr - BlockWidth + width;
+#endif
 	}
-      aptr = aptr-BlockWidth+width;
-      bptr = bptr-BlockWidth+width;
-    }
 }
 
 /*BFUNC
