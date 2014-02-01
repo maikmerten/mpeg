@@ -349,28 +349,50 @@ void MakeMask(x,y,mask,XIob)
     }
 }
 
-static void Get4Ptr(width,matrix,aptr,bptr,cptr,dptr)
-     int width;
-     int *matrix;
-     unsigned char *aptr;
-     unsigned char *bptr;
-     unsigned char *cptr;
-     unsigned char *dptr;
-{
-  int i,j;
+static void Get4Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *bptr, unsigned char *cptr, unsigned char *dptr) {
+	int i, j;
 
-  for(i=0;i<BlockHeight;i++) /* should be unrolled */
-    {
-      for(j=0;j<BlockWidth;j++)
-	{
-	  *(matrix++) = ((((int)*aptr++) + ((int)*bptr++) +
-			  ((int)*cptr++) + ((int)*dptr++) + 2) >> 2);
+	for (i = 0; i < BlockHeight; i++) /* should be unrolled */ {
+#ifdef __SSE2__
+		__m128i a = _mm_loadl_epi64((__m128i*) aptr);
+		__m128i b = _mm_loadl_epi64((__m128i*) bptr);
+		__m128i c = _mm_loadl_epi64((__m128i*) cptr);
+		__m128i d = _mm_loadl_epi64((__m128i*) dptr);
+		__m128i zero = _mm_set1_epi32(0);
+
+		a = _mm_unpacklo_epi8(a, zero);
+		b = _mm_unpacklo_epi8(b, zero);
+		c = _mm_unpacklo_epi8(c, zero);
+		d = _mm_unpacklo_epi8(d, zero);
+
+		a = _mm_add_epi16(a, b);
+		c = _mm_add_epi16(c, d);
+		a = _mm_add_epi16(a, c);
+		a = _mm_add_epi16(a, _mm_set1_epi16(2));
+		a = _mm_srli_epi16(a, 2);
+
+		b = _mm_unpackhi_epi8(a, zero);
+		a = _mm_unpacklo_epi8(a, zero);
+
+		_mm_storeu_si128((__m128i*) matrix, a);
+		_mm_storeu_si128(((__m128i*) matrix) + 1, b);
+
+		matrix += 8;
+		aptr += width;
+		bptr += width;
+		cptr += width;
+		dptr += width;
+#else
+		for (j = 0; j < BlockWidth; j++) {
+			*(matrix++) = ((((int) *aptr++) + ((int) *bptr++) +
+					((int) *cptr++) + ((int) *dptr++) + 2) >> 2);
+		}
+		aptr = aptr - BlockWidth + width;
+		bptr = bptr - BlockWidth + width;
+		cptr = cptr - BlockWidth + width;
+		dptr = dptr - BlockWidth + width;
+#endif
 	}
-      aptr = aptr-BlockWidth+width;
-      bptr = bptr-BlockWidth+width;
-      cptr = cptr-BlockWidth+width;
-      dptr = dptr-BlockWidth+width;
-    }
 }
 
 static void Get2Ptr(int width, int *matrix, unsigned char *aptr, unsigned char *bptr) {
